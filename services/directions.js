@@ -69,7 +69,8 @@ Directions.getDirections = function(config) {
           approach: v.oneOf('unrestricted', 'curb'),
           bearing: v.arrayOf(v.range([0, 360])),
           radius: v.oneOfType(v.number, v.equal('unlimited')),
-          waypointName: v.string
+          waypointName: v.string,
+          separatesLegs: v.boolean
         })
       )
     ),
@@ -150,6 +151,14 @@ Directions.getDirections = function(config) {
     }
   });
 
+  const waypointIndices = new Set(config.waypoints.map((waypoint, idx) => ({ waypoint, idx })).filter(({ waypoint }) => typeof waypoint.separatesLegs === 'undefined' || waypoint.separatesLegs).map(({ idx }) => idx))
+  waypointIndices.add(0)
+  waypointIndices.add(config.waypoints.length - 1)
+
+  if (waypointIndices.size < config.waypoints.length) {
+    path.waypoints = [...waypointIndices].join(';')
+  }
+
   var query = stringifyBooleans({
     alternatives: config.alternatives,
     annotations: config.annotations,
@@ -166,7 +175,8 @@ Directions.getDirections = function(config) {
     approaches: path.approach,
     bearings: path.bearing,
     radiuses: path.radius,
-    waypoint_names: path.waypointName
+    waypoint_names: path.waypointName,
+    waypoints: path.waypoints
   });
 
   return this.client.createRequest({
